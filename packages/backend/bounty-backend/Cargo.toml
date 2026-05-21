@@ -1,0 +1,33 @@
+[package]
+name = "bounty-backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio         = { workspace = true }
+axum          = { workspace = true }
+sqlx          = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+solana-sdk    = { workspace = true }
+solana-client = { workspace = true }
+anchor-client = { workspace = true }
+hmac = { workspace = true }
+uuid          = { workspace = true }
+chrono        = { workspace = true }
+anyhow        = { workspace = true }
+thiserror     = { workspace = true }
+jsonwebtoken     = { workspace = true }
+ed25519-dalek     = { workspace = true }
+reqwest     = { workspace = true }
+dotenvy       = { workspace = true }
+utoipa        = { workspace = true }
+tracing             = "0.1"
+tracing-subscriber  = { version = "0.3", features = ["env-filter"] }
+rand               = { workspace = true }
+bs58               = { workspace = true }
+hex                = { workspace = true }
+spl-associated-token-account = { workspace = true }
+tower-http = { workspace = true }
+spl-token = {workspace = true}
+sha2 = {workspace = true}
