@@ -11,8 +11,8 @@ use crate::{
 #[derive(Accounts)]
 pub struct ClaimBountySol<'info> {
     /// Your backend's hot wallet — the only key allowed to trigger payouts
-    #[account(mut, constraint = bounty.winner.unwrap() == winner.key() @BountyError::WrongWinner)]
-    pub winner: Signer<'info>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     #[account(
         mut,
@@ -20,6 +20,10 @@ pub struct ClaimBountySol<'info> {
         bump = bounty.bump,
     )]
     pub bounty: Account<'info, BountyAccount>,
+
+    /// CHECK: verified against the `winner` arg and the hunter ATA owner
+    #[account(mut, constraint = bounty.winner.unwrap() == winner.key() @ BountyError::WrongWinner)]
+    pub winner: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -30,7 +34,7 @@ pub fn claim_bounty_sol(ctx: Context<ClaimBountySol>) -> Result<()> {
     let bounty = &mut ctx.accounts.bounty;
     require!(bounty.status == BountyStatus::Open, BountyError::NotOpen);
     require!(
-        bounty.expiry_date < Clock::get()?.unix_timestamp,
+        bounty.expiry_date > Clock::get()?.unix_timestamp,
         BountyError::Expired
     );
 

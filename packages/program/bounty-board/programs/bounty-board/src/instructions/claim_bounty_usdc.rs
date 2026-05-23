@@ -12,15 +12,12 @@ use anchor_spl::{
 #[derive(Accounts)]
 pub struct ClaimBountyUSDC<'info> {
     /// Your backend hot wallet — pays for hunter ATA creation if needed
-    #[account(
-        mut,
-        constraint = winner.key() == bounty.winner.unwrap() @BountyError::WrongWinner
-    )]
-    pub winner: Signer<'info>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [b"bounty", bounty.poster.as_ref(), &bounty.bounty_id.to_be_bytes()],
+        seeds = [b"bounty", bounty.poster.as_ref(), &bounty.bounty_id.to_le_bytes()],
         bump = bounty.bump,
         constraint = bounty.token_mint.is_some() @ BountyError::NotSplBounty,
     )]
@@ -38,12 +35,16 @@ pub struct ClaimBountyUSDC<'info> {
     /// Hunter's ATA — created automatically if it doesn't exist
     #[account(
         init_if_needed,
-        payer = winner,
+        payer = authority,
         associated_token::mint = token_mint,
-        associated_token::authority = bounty,
+        associated_token::authority = winner,
         associated_token::token_program = token_program
     )]
     pub hunter_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    /// CHECK: verified against the `winner` arg and the hunter ATA owner
+    #[account(mut, constraint = bounty.winner.unwrap() == winner.key() @ BountyError::WrongWinner)]
+    pub winner: AccountInfo<'info>,
 
     #[account(
         constraint = token_mint.key() == bounty.token_mint.unwrap() @ BountyError::WrongTokenMint
@@ -60,7 +61,7 @@ pub fn claim_bounty_usdc(ctx: Context<ClaimBountyUSDC>) -> Result<()> {
 
     require!(bounty.status == BountyStatus::Open, BountyError::NotOpen);
     require!(
-        bounty.expiry_date < Clock::get()?.unix_timestamp,
+        bounty.expiry_date > Clock::get()?.unix_timestamp,
         BountyError::Expired
     );
 
