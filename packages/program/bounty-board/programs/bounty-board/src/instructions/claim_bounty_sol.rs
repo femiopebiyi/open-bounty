@@ -24,12 +24,8 @@ pub struct ClaimBountySol<'info> {
     /// CHECK: verified against the `winner` arg and the hunter ATA owner
     #[account(mut, constraint = bounty.winner.unwrap() == winner.key() @ BountyError::WrongWinner)]
     pub winner: AccountInfo<'info>,
-
-    pub system_program: Program<'info, System>,
 }
 
-/// Backend calls this after verifying the PR was merged on GitHub.
-/// The backend signs as the `authority` (a hot wallet you control).
 pub fn claim_bounty_sol(ctx: Context<ClaimBountySol>) -> Result<()> {
     let bounty = &mut ctx.accounts.bounty;
     require!(bounty.status == BountyStatus::Open, BountyError::NotOpen);
@@ -41,31 +37,21 @@ pub fn claim_bounty_sol(ctx: Context<ClaimBountySol>) -> Result<()> {
     bounty.status = BountyStatus::Claimed;
     let amount = bounty.amount;
 
-    // PDA signs to transfer SOL out of its own account → hunter
-    let seeds = &[
-        b"bounty",
-        bounty.poster.as_ref(),
-        &bounty.bounty_id.to_le_bytes(),
-        &[bounty.bump],
-    ];
+    let bounty_lamports = bounty.to_account_info().lamports();
+    let winner_lamports = ctx.accounts.winner.lamports();
 
-    let signer_seeds = &[&seeds[..]];
+    **bounty.to_account_info().try_borrow_mut_lamports()? = bounty_lamports
+        .checked_sub(amount)
+        .ok_or(BountyError::MathOverflow)?;
 
-    transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.system_program.to_account_info(),
-            Transfer {
-                from: bounty.to_account_info(),
-                to: ctx.accounts.winner.to_account_info(),
-            },
-            signer_seeds,
-        ),
-        bounty.amount,
-    )?;
+    **ctx.accounts.winner.try_borrow_mut_lamports()? = winner_lamports
+        .checked_add(amount)
+        .ok_or(BountyError::MathOverflow)?;
 
     emit!(BountyClaimed {
         hunter: ctx.accounts.winner.key(),
         amount,
     });
+
     Ok(())
 }

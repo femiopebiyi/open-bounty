@@ -79,7 +79,6 @@ pub async fn claim_bounty_sol(
             AccountMeta::new(authority.pubkey(), true), // authority — mut signer
             AccountMeta::new(bounty_pda, false),        // bounty PDA — mut
             AccountMeta::new(winner_key, false),        // winner — mut
-            AccountMeta::new_readonly(solana_sdk::system_program::id(), false),
         ],
         data: discriminator,
     };
