@@ -119,8 +119,10 @@ async fn create_bounty(
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
+    let bounty_token_mint = body.token_mint.clone();
+
     // validate token_mint is a valid pubkey if provided
-    if let Some(ref mint) = body.token_mint {
+    if let Some(ref mint) = bounty_token_mint {
         solana_sdk::pubkey::Pubkey::from_str(mint).map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
@@ -147,12 +149,46 @@ async fn create_bounty(
         body.usd_amount_at_the_time,
         body.expiry_date,
         body.github_issue_url,
-        body.token_mint as Option<String>,
+        bounty_token_mint,
         body.tx_sig,
     )
     .fetch_one(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // After successful insert
+    let user = sqlx::query!(
+        "SELECT email FROM users WHERE github_username = $1",
+        github_username,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .ok()
+    .flatten();
+
+    if let Some(user) = user {
+        if let Some(email) = user.email {
+            tokio::spawn(async move {
+                if let Err(e) = crate::email::send_bounty_posted(
+                    &state.resend_api_key,
+                    &email,
+                    &github_username,
+                    body.bounty_id,
+                    &body.github_issue_url,
+                    if bounty_token_mint.is_none() {
+                        body.amount_in_sol
+                    } else {
+                        body.usd_amount_at_the_time
+                    },
+                    bounty_token_mint, // Option<String>
+                )
+                .await
+                {
+                    tracing::error!("Failed to send bounty posted email: {e}");
+                }
+            });
+        }
+    }
 
     Ok(Json(BountyResponse {
         bounty_id: record.bounty_id,
@@ -282,16 +318,20 @@ async fn register_for_bounty(
 
     // 2. Check bounty exists and is open, get poster username
     let bounty = sqlx::query!(
-        "SELECT github_username FROM bounties WHERE bounty_id = $1 AND status = 'open'",
-        body.bounty_id,
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    .ok_or((
-        StatusCode::NOT_FOUND,
-        "Bounty not found or not open".to_string(),
-    ))?;
+    "SELECT github_username, github_issue_url, token_mint, amount_in_sol, usd_amount_at_the_time FROM bounties WHERE bounty_id = $1 AND status = 'open'",
+    body.bounty_id,
+)
+.fetch_optional(&state.db)
+.await
+.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+.ok_or((
+    StatusCode::NOT_FOUND,
+    "Bounty not found or not open".to_string(),
+))?;
+
+    let bounty_token_mint = bounty.token_mint.clone();
+    let bounty_amount_in_sol = bounty.amount_in_sol;
+    let bounty_usd_amount = bounty.usd_amount_at_the_time;
 
     // 3. Prevent poster from registering for their own bounty
     if bounty.github_username == github_username {
@@ -327,6 +367,43 @@ async fn register_for_bounty(
     .execute(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // After successful insert into bounty_hunters
+    let user = sqlx::query!(
+        "SELECT email FROM users WHERE github_username = $1",
+        github_username,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .ok()
+    .flatten();
+
+    if let Some(user) = user {
+        if let Some(email) = user.email {
+            let state = state.clone();
+            let github_username = github_username.clone();
+            let github_issue_url = bounty.github_issue_url.clone();
+            tokio::spawn(async move {
+                if let Err(e) = crate::email::send_hunter_registered(
+                    &state.resend_api_key,
+                    &email,
+                    &github_username,
+                    body.bounty_id,
+                    &github_issue_url,
+                    if bounty_token_mint.is_none() {
+                        bounty_amount_in_sol
+                    } else {
+                        bounty_usd_amount
+                    },
+                    bounty_token_mint,
+                )
+                .await
+                {
+                    tracing::error!("Failed to send hunter registered email: {e}");
+                }
+            });
+        }
+    }
 
     Ok(StatusCode::CREATED)
 }

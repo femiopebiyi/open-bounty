@@ -9,6 +9,7 @@ use tower_http::cors::{Any, CorsLayer};
 
 mod auth;
 mod db;
+mod email;
 mod github;
 mod routes;
 mod solana;
@@ -24,6 +25,7 @@ pub struct AppState {
     pub github_client_id: String,
     pub github_client_secret: String,
     pub github_token: String,
+    pub resend_api_key: String,
 }
 
 impl AsRef<String> for AppState {
@@ -51,6 +53,7 @@ async fn main() -> anyhow::Result<()> {
     let github_client_secret =
         std::env::var("GITHUB_CLIENT_SECRET").expect("GITHUB_CLIENT_SECRET must be set");
     let github_token = std::env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN must be set");
+    let resend_api_key = std::env::var("RESEND_API_KEY").expect("RESEND_API_KEY must be set");
 
     let db = db::connect(&database_url).await?;
     tracing::info!("Database connected!!!");
@@ -78,6 +81,7 @@ async fn main() -> anyhow::Result<()> {
         github_client_id,
         github_client_secret,
         github_token,
+        resend_api_key,
     };
 
     let cors = CorsLayer::new()

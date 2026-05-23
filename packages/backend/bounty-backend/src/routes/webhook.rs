@@ -132,7 +132,7 @@ pub async fn github_webhook(
     // 5. Find matching bounty in database
     for issue_url in &issue_urls {
         let bounty = sqlx::query!(
-            "SELECT bounty_id, github_username, wallet_pubkey, created_at FROM bounties
+            "SELECT bounty_id, github_username, wallet_pubkey, created_at, token_mint, amount_in_sol, usd_amount_at_the_time FROM bounties
      WHERE github_issue_url = $1 AND status = 'open'",
             issue_url,
         )
@@ -150,6 +150,10 @@ pub async fn github_webhook(
                 continue;
             }
         };
+
+        let bounty_token_mint = bounty.token_mint.clone();
+        let bounty_amount_in_sol = bounty.amount_in_sol;
+        let bounty_usd_amount = bounty.usd_amount_at_the_time;
 
         // Ensure PR was merged after the bounty was created
         if let Some(ref merged_at_str) = pr.merged_at {
@@ -240,6 +244,26 @@ pub async fn github_webhook(
                 // 9. Send email notification if hunter provided one
                 if let Some(email) = hunter.email {
                     tracing::info!("TODO: send winner notification to {email}");
+                    let state = state.clone();
+                    let winner_username = pr.user.login.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = crate::email::send_winner_notification(
+                            &state.resend_api_key,
+                            &email,
+                            &winner_username,
+                            bounty.bounty_id,
+                            if bounty_token_mint.is_none() {
+                                bounty_amount_in_sol
+                            } else {
+                                bounty_usd_amount
+                            }, // fetch usd amount if needed
+                            bounty_token_mint,
+                        )
+                        .await
+                        {
+                            tracing::error!("Failed to send winner notification email: {e}");
+                        }
+                    });
                 }
             }
             Err(e) => {
