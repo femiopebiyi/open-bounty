@@ -258,11 +258,14 @@ pub async fn github_webhook(
                                 bounty_usd_amount
                             }, // fetch usd amount if needed
                             bounty_token_mint,
+                            &state.http_client,
                         )
                         .await
                         {
                             tracing::error!("Failed to send winner notification email: {e}");
                         }
+
+                        tracing::info!("Email sent successfully!!");
                     });
                 }
             }

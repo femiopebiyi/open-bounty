@@ -181,11 +181,13 @@ async fn create_bounty(
                         body.usd_amount_at_the_time
                     },
                     bounty_token_mint, // Option<String>
+                    &state.http_client,
                 )
                 .await
                 {
                     tracing::error!("Failed to send bounty posted email: {e}");
                 }
+                tracing::info!("Email sent successfully!!")
             });
         }
     }
@@ -396,11 +398,13 @@ async fn register_for_bounty(
                         bounty_usd_amount
                     },
                     bounty_token_mint,
+                    &state.http_client,
                 )
                 .await
                 {
                     tracing::error!("Failed to send hunter registered email: {e}");
                 }
+                tracing::info!("Email sent successfully!!")
             });
         }
     }

@@ -18,14 +18,15 @@ mod solana;
 pub struct AppState {
     pub db: sqlx::PgPool,
     pub rpc_client: Arc<solana_client::rpc_client::RpcClient>,
-    pub authority: Arc<solana_sdk::signature::Keypair>, // loaded from env
-    pub gh_secret: String,                              // GitHub webhook secret
+    pub authority: Arc<solana_sdk::signature::Keypair>,
+    pub gh_secret: String,
     pub program_id: solana_sdk::pubkey::Pubkey,
     pub jwt_secret: String,
     pub github_client_id: String,
     pub github_client_secret: String,
     pub github_token: String,
     pub resend_api_key: String,
+    pub http_client: reqwest::Client, // shared across all handlers
 }
 
 impl AsRef<String> for AppState {
@@ -71,6 +72,11 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("Executor keypair loaded: {}", executor_keypair.pubkey());
 
+    let http_client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .expect("Failed to build HTTP client");
+
     let state = AppState {
         db,
         rpc_client: rpc,
@@ -82,6 +88,7 @@ async fn main() -> anyhow::Result<()> {
         github_client_secret,
         github_token,
         resend_api_key,
+        http_client,
     };
 
     let cors = CorsLayer::new()
