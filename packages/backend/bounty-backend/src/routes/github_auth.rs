@@ -1,5 +1,5 @@
 use axum::{
-    Json,
+    Json, Router,
     extract::{Query, State},
     http::StatusCode,
     response::Redirect,
@@ -7,8 +7,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 use crate::{AppState, auth::issue_jwt};
-
-// ── GET /auth/github ──────────────────────────────────────────────────────────
 
 pub async fn github_login(State(state): State<AppState>) -> Redirect {
     let url = format!(
@@ -18,18 +16,9 @@ pub async fn github_login(State(state): State<AppState>) -> Redirect {
     Redirect::to(&url)
 }
 
-// ── GET /auth/github/callback ─────────────────────────────────────────────────
-
 #[derive(Deserialize)]
 pub struct CallbackQuery {
     pub code: String,
-}
-
-#[derive(Serialize)]
-pub struct AuthResponse {
-    pub token: String,
-    pub github_username: String,
-    pub email: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -39,17 +28,20 @@ struct GithubTokenResponse {
 
 #[derive(Deserialize)]
 struct GithubUser {
-    login: String, // github username
+    login: String,
     email: Option<String>,
 }
 
 pub async fn github_callback(
     State(state): State<AppState>,
     Query(params): Query<CallbackQuery>,
-) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    // 1. Exchange code for access token
-    let client = reqwest::Client::new();
+) -> Result<Redirect, (StatusCode, String)> {
+    let frontend_url =
+        std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:3001".to_string());
 
+    let client = state.http_client.clone();
+
+    // 1. Exchange code for access token
     let token_res = client
         .post("https://github.com/login/oauth/access_token")
         .header("Accept", "application/json")
@@ -72,7 +64,7 @@ pub async fn github_callback(
             "Authorization",
             format!("Bearer {}", token_res.access_token),
         )
-        .header("User-Agent", "bounty-board")
+        .header("User-Agent", "openbounty")
         .send()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
@@ -80,14 +72,14 @@ pub async fn github_callback(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // 3. Upsert user into hunters table so every GitHub user has a record
+    // 3. Upsert user
     sqlx::query!(
         r#"
-    INSERT INTO users (github_username, email)
-    VALUES ($1, $2)
-    ON CONFLICT (github_username)
-    DO UPDATE SET email = COALESCE(EXCLUDED.email, users.email)
-    "#,
+        INSERT INTO users (github_username, email)
+        VALUES ($1, $2)
+        ON CONFLICT (github_username)
+        DO UPDATE SET email = COALESCE(EXCLUDED.email, users.email)
+        "#,
         github_user.login,
         github_user.email,
     )
@@ -95,23 +87,29 @@ pub async fn github_callback(
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // 4. Issue JWT with github_username
+    // 4. Issue JWT
     let token = issue_jwt(&github_user.login, &state.jwt_secret)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    tracing::info!("{}", token);
-
-    Ok(Json(AuthResponse {
+    // 5. Redirect to frontend with token in query params
+    let redirect_url = format!(
+        "{}/auth/callback?token={}&github_username={}&email={}",
+        frontend_url,
         token,
-        github_username: github_user.login,
-        email: github_user.email,
-    }))
+        github_user.login,
+        github_user.email.unwrap_or_default()
+    );
+
+    tracing::info!(
+        "GitHub login: {} → redirecting to frontend",
+        github_user.login
+    );
+
+    Ok(Redirect::to(&redirect_url))
 }
 
-use axum::Router;
-use axum::routing::get;
-
 pub fn router() -> Router<AppState> {
+    use axum::routing::get;
     Router::new()
         .route("/auth/github", get(github_login))
         .route("/auth/github/callback", get(github_callback))

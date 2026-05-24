@@ -27,6 +27,7 @@ pub struct AppState {
     pub github_token: String,
     pub resend_api_key: String,
     pub http_client: reqwest::Client, // shared across all handlers
+    pub frontend_url: String,
 }
 
 impl AsRef<String> for AppState {
@@ -55,6 +56,8 @@ async fn main() -> anyhow::Result<()> {
         std::env::var("GITHUB_CLIENT_SECRET").expect("GITHUB_CLIENT_SECRET must be set");
     let github_token = std::env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN must be set");
     let resend_api_key = std::env::var("RESEND_API_KEY").expect("RESEND_API_KEY must be set");
+    let frontend_url =
+        std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:3001".to_string());
 
     let db = db::connect(&database_url).await?;
     tracing::info!("Database connected!!!");
@@ -89,6 +92,7 @@ async fn main() -> anyhow::Result<()> {
         github_token,
         resend_api_key,
         http_client,
+        frontend_url,
     };
 
     let cors = CorsLayer::new()
@@ -101,6 +105,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(routes::bounties::router())
         .merge(routes::auth::router())
         .merge(routes::github_auth::router())
+        .merge(routes::github::router())
         .merge(routes::webhook::router())
         .merge(routes::claim::router())
         .layer(cors)

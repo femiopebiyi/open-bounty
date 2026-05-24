@@ -16,7 +16,7 @@ api.interceptors.request.use((config) => {
         if (state?.token) {
           config.headers.Authorization = `Bearer ${state.token}`;
         }
-      } catch {}
+      } catch { }
     }
   }
   return config;
@@ -76,20 +76,13 @@ export const requestFaucet = async (wallet: string) => {
 };
 
 // GitHub helpers
-export const fetchUserRepos = async (token: string) => {
-  const res = await fetch(
-    "https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator",
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!res.ok) throw new Error("Failed to fetch repos");
-  return res.json();
+export const fetchUserRepos = async (_token: string) => {
+  const { data } = await api.get("/github/repos");
+  return data;
 };
 
-export const fetchRepoIssues = async (token: string, full_name: string) => {
-  const res = await fetch(
-    `https://api.github.com/repos/${full_name}/issues?state=open&per_page=50`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!res.ok) throw new Error("Failed to fetch issues");
-  return res.json();
+export const fetchRepoIssues = async (_token: string, full_name: string) => {
+  const [owner, repo] = full_name.split("/");
+  const { data } = await api.get(`/github/repos/${owner}/${repo}/issues`);
+  return data;
 };
