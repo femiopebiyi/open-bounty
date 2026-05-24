@@ -40,9 +40,15 @@ async fn send_email(
 }
 
 fn format_amount(amount: i64, token_mint: &Option<String>) -> String {
-    let value = amount as f64 / 1_000_000_000.0;
-    let unit = if token_mint.is_none() { "SOL" } else { "USDC" };
-    format!("{:.2} {}", value, unit)
+    if token_mint.is_none() {
+        // SOL — 9 decimals (lamports)
+        let value = amount as f64 / 1_000_000_000.0;
+        format!("{:.4} SOL", value)
+    } else {
+        // USDC — 6 decimals (micro-USDC)
+        let value = amount as f64 / 1_000_000.0;
+        format!("{:.2} USDC", value)
+    }
 }
 
 pub async fn send_bounty_posted(

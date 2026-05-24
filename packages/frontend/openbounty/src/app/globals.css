@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+    --radius: 8px;
+  }
+
+  * {
+    border-color: theme("colors.ink.200");
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+    color: theme("colors.ink.950");
+    font-feature-settings:
+      "ss01",
+      "ss02",
+      "cv01",
+      "cv02",
+      "cv11";
+  }
+
+  body {
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Native focus rings — Linear/Vercel style */
+  *:focus-visible {
+    outline: 2px solid theme("colors.ink.950");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: theme("colors.ink.950");
+    color: white;
+  }
+
+  /* Tabular numbers everywhere they make sense */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Subtle gradient grid background for hero sections */
+  .bg-grid {
+    background-image:
+      linear-gradient(theme("colors.ink.100") 1px, transparent 1px),
+      linear-gradient(90deg, theme("colors.ink.100") 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
+    mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(
+      ellipse at top,
+      black 30%,
+      transparent 75%
+    );
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: theme("colors.ink.100");
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent
+    );
+    transform: translateX(-100%);
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Wallet adapter overrides — match our design language */
+.wallet-adapter-button-trigger {
+  background: theme("colors.ink.950") !important;
+  font-family: var(--font-geist-sans) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  height: 34px !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  transition: opacity 0.15s ease !important;
+}
+.wallet-adapter-button-trigger:hover {
+  background: theme("colors.ink.800") !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: white !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 24px 48px -12px rgb(0 0 0 / 0.18),
+    0 0 0 0.5px theme("colors.ink.200") !important;
+  font-family: var(--font-geist-sans) !important;
+}
+.wallet-adapter-modal-title {
+  font-family: var(--font-geist-sans) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button {
+  background: theme("colors.ink.50") !important;
+  border-radius: 8px !important;
+  font-family: var(--font-geist-sans) !important;
+  transition: background 0.15s ease !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: theme("colors.ink.100") !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: theme("colors.ink.200");
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: theme("colors.ink.300");
+}
