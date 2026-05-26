@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { PublicKey } from "@solana/web3.js";
 import { toast } from "sonner";
 import {
   Search,
@@ -15,11 +16,11 @@ import {
   Info,
   Lock,
   Star,
-  Loader2,
   CircleDot,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
+import bs58 from "bs58";
 
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useAuthStore } from "@/store/auth";
@@ -30,12 +31,7 @@ import {
   formatTimeAgo,
 } from "@/lib/utils";
 import { SUPPORTED_LANGUAGES, LANGUAGE_COLORS } from "@/lib/constants";
-import {
-  api,
-  getNonce,
-  fetchUserRepos,
-  fetchRepoIssues,
-} from "@/lib/api";
+import { api, getNonce, fetchUserRepos, fetchRepoIssues } from "@/lib/api";
 import type { GitHubRepo, GitHubIssue } from "@/types";
 
 import { Button } from "@/components/ui/Button";
@@ -43,6 +39,7 @@ import { Input, Label } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TransactionModal } from "@/components/bounty/TransactionModal";
+import { postBountySol, postBountyUsdc } from "@/lib/transactions";
 
 type Step = "repo" | "issue" | "details";
 
@@ -55,6 +52,8 @@ const STEPS: { key: Step; label: string }[] = [
 export default function PostBountyPage() {
   const router = useRouter();
   const { publicKey, signMessage, connected } = useWallet();
+  const { connection } = useConnection();
+  const anchorWallet = useAnchorWallet();
   const { setVisible } = useWalletModal();
   const { isAuthenticated, token } = useAuthStore();
   const { AuthModal, setShowLogin } = useAuthGuard();
@@ -69,7 +68,7 @@ export default function PostBountyPage() {
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [loadingIssues, setLoadingIssues] = useState(false);
 
-  // Form state
+  // Form
   const [tokenType, setTokenType] = useState<"SOL" | "USDC">("SOL");
   const [amountUsd, setAmountUsd] = useState("");
   const [daysActive, setDaysActive] = useState("14");
@@ -82,12 +81,10 @@ export default function PostBountyPage() {
   const [txError, setTxError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Auth gate
   useEffect(() => {
     if (!isAuthenticated) setShowLogin(true);
   }, [isAuthenticated, setShowLogin]);
 
-  // Load repos
   useEffect(() => {
     if (!isAuthenticated || !token) return;
     setLoadingRepos(true);
@@ -104,7 +101,6 @@ export default function PostBountyPage() {
     setLoadingIssues(true);
     try {
       const data = await fetchRepoIssues(token!, repo.full_name);
-      // Filter out pull requests (GitHub returns them too)
       const issuesOnly = (data as any[]).filter((d) => !d.pull_request);
       setIssues(issuesOnly);
     } catch {
@@ -119,11 +115,10 @@ export default function PostBountyPage() {
     setStep("details");
   };
 
-  const toggleLanguage = (lang: string) => {
+  const toggleLanguage = (lang: string) =>
     setLanguages((prev) =>
       prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
     );
-  };
 
   const filteredRepos = useMemo(() => {
     const q = repoSearch.toLowerCase();
@@ -144,14 +139,19 @@ export default function PostBountyPage() {
   }, [issues, issueSearch]);
 
   const handleSubmit = async () => {
-    if (!connected || !publicKey) {
+    if (!connected || !publicKey || !anchorWallet) {
       setVisible(true);
       return;
     }
     if (!selectedIssue || !selectedRepo) return;
+
     const amt = parseFloat(amountUsd);
     if (!amt || amt <= 0) {
       toast.error("Enter a valid amount");
+      return;
+    }
+    if (!signMessage) {
+      toast.error("Your wallet does not support message signing");
       return;
     }
 
@@ -161,27 +161,47 @@ export default function PostBountyPage() {
     setSubmitting(true);
 
     try {
-      // Step 0: Sign nonce
-      const { nonce, message } = await getNonce(publicKey.toBase58());
-      const messageBytes = new TextEncoder().encode(message);
-      const signature = await signMessage!(messageBytes);
-      const sigB58 = Buffer.from(signature).toString("base64");
-      setTxStep(1);
-
-      // Step 1 (SOL): Pyth price update (simulated tx)
-      if (tokenType === "SOL") {
-        await new Promise((r) => setTimeout(r, 900));
-        setTxStep(2);
-      }
-
-      // Step 2: Lock funds
-      await new Promise((r) => setTimeout(r, 800));
-      setTxStep(tokenType === "SOL" ? 3 : 2);
-
-      // Step 3: Confirm + backend
       const bountyId = Date.now();
       const expiryDate = daysToUnixTimestamp(parseInt(daysActive));
       const amountMicro = usdToMicroDollars(amt);
+
+      // ── Step 0: Verify wallet ownership via nonce ──
+      setTxStep(0);
+      const { nonce, message } = await getNonce(publicKey.toBase58());
+      const messageBytes = new TextEncoder().encode(message);
+      const signatureBytes = await signMessage(messageBytes);
+      const signature = bs58.encode(signatureBytes);
+
+      // ── Steps 1-N: On-chain transaction(s) ──
+      let txSig: string;
+
+      if (tokenType === "SOL") {
+        txSig = await postBountySol({
+          connection,
+          wallet: anchorWallet,
+          bountyId,
+          amountUsd: amountMicro,
+          expiryDate,
+          onStepChange: setTxStep,
+        });
+      } else {
+        const usdcMint = process.env.NEXT_PUBLIC_USDC_MINT;
+        if (!usdcMint) throw new Error("USDC mint address not configured");
+
+        txSig = await postBountyUsdc({
+          connection,
+          wallet: anchorWallet,
+          bountyId,
+          amount: amountMicro,
+          expiryDate,
+          tokenMint: new PublicKey(usdcMint),
+          onStepChange: setTxStep,
+        });
+      }
+
+      // ── Final step: Record in backend ──
+      const totalSteps = tokenType === "SOL" ? 3 : 2;
+      setTxStep(totalSteps);
 
       await api.post("/bounties", {
         bounty_id: bountyId,
@@ -191,8 +211,8 @@ export default function PostBountyPage() {
         github_issue_url: selectedIssue.html_url,
         wallet: publicKey.toBase58(),
         nonce,
-        signature: sigB58,
-        tx_sig: "devnet_tx_" + bountyId,
+        signature,
+        tx_sig: txSig,
         token_mint:
           tokenType === "USDC"
             ? process.env.NEXT_PUBLIC_USDC_MINT || null
@@ -201,15 +221,22 @@ export default function PostBountyPage() {
         hunter_limit: parseInt(hunterLimit),
       });
 
-      setTxStep(tokenType === "SOL" ? 4 : 3);
-      await new Promise((r) => setTimeout(r, 500));
-
       toast.success("Bounty posted!");
-      router.push(`/bounties/${bountyId}`);
+      setTimeout(() => {
+        setTxModalOpen(false);
+        router.push("/");
+      }, 1500);
     } catch (err: any) {
-      setTxError(
-        err?.response?.data || err?.message || "Something went wrong"
-      );
+      console.error(err);
+      // User rejected wallet signature
+      if (
+        err?.message?.includes("User rejected") ||
+        err?.message?.includes("Transaction cancelled")
+      ) {
+        setTxError("Transaction cancelled.");
+      } else {
+        setTxError(err?.response?.data || err?.message || "Something went wrong");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -290,7 +317,7 @@ export default function PostBountyPage() {
         })}
       </div>
 
-      {/* Step content */}
+      {/* Step 1: Repo picker */}
       {step === "repo" && (
         <div className="animate-fade-up">
           <div className="mb-4">
@@ -301,7 +328,6 @@ export default function PostBountyPage() {
               onChange={(e) => setRepoSearch(e.target.value)}
             />
           </div>
-
           <div className="border border-ink-200 rounded-xl overflow-hidden bg-white">
             {loadingRepos ? (
               <div className="divide-y divide-ink-100">
@@ -317,11 +343,7 @@ export default function PostBountyPage() {
                 <EmptyState
                   icon={<GitBranch className="w-4 h-4" />}
                   title="No repositories found"
-                  description={
-                    repoSearch
-                      ? "Try a different search term."
-                      : "Connect a GitHub account with repositories."
-                  }
+                  description={repoSearch ? "Try a different search term." : "No repositories available."}
                 />
               </div>
             ) : (
@@ -346,19 +368,18 @@ export default function PostBountyPage() {
                             )}
                           </div>
                           {repo.description && (
-                            <p className="text-xs text-ink-500 truncate">
+                            <p className="text-xs text-ink-500 truncate ml-5">
                               {repo.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-4 mt-2 text-2xs text-ink-400">
+                          <div className="flex items-center gap-4 mt-2 ml-5 text-2xs text-ink-400">
                             {repo.language && (
                               <span className="flex items-center gap-1">
                                 <span
                                   className="w-1.5 h-1.5 rounded-full"
                                   style={{
                                     backgroundColor:
-                                      LANGUAGE_COLORS[repo.language] ||
-                                      "#71717A",
+                                      LANGUAGE_COLORS[repo.language] || "#71717A",
                                   }}
                                 />
                                 {repo.language}
@@ -372,7 +393,6 @@ export default function PostBountyPage() {
                               <CircleDot className="w-3 h-3" />
                               {repo.open_issues_count} open
                             </span>
-                            <span>Updated {formatTimeAgo(repo.updated_at)}</span>
                           </div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-ink-300 group-hover:text-ink-500 transition-colors shrink-0" />
@@ -386,16 +406,12 @@ export default function PostBountyPage() {
         </div>
       )}
 
+      {/* Step 2: Issue picker */}
       {step === "issue" && selectedRepo && (
         <div className="animate-fade-up">
-          {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-xs mb-4">
             <button
-              onClick={() => {
-                setStep("repo");
-                setSelectedRepo(null);
-                setIssues([]);
-              }}
+              onClick={() => { setStep("repo"); setSelectedRepo(null); setIssues([]); }}
               className="text-ink-500 hover:text-ink-900 transition-colors font-mono"
             >
               {selectedRepo.full_name}
@@ -403,16 +419,14 @@ export default function PostBountyPage() {
             <ChevronRight className="w-3 h-3 text-ink-300" />
             <span className="text-ink-700 font-medium">Pick an issue</span>
           </div>
-
           <div className="mb-4">
             <Input
-              placeholder="Search open issues by title or number…"
+              placeholder="Search open issues…"
               leftIcon={<Search className="w-3.5 h-3.5" />}
               value={issueSearch}
               onChange={(e) => setIssueSearch(e.target.value)}
             />
           </div>
-
           <div className="border border-ink-200 rounded-xl overflow-hidden bg-white">
             {loadingIssues ? (
               <div className="divide-y divide-ink-100">
@@ -473,6 +487,7 @@ export default function PostBountyPage() {
         </div>
       )}
 
+      {/* Step 3: Details */}
       {step === "details" && selectedIssue && selectedRepo && (
         <div className="animate-fade-up space-y-6">
           {/* Selected issue summary */}
@@ -485,8 +500,8 @@ export default function PostBountyPage() {
                 {selectedIssue.title}
               </p>
               <p className="text-xs text-ink-500 mt-0.5 font-mono">
-                {selectedRepo.full_name} <span className="text-ink-300">·</span>{" "}
-                #{selectedIssue.number}
+                {selectedRepo.full_name}{" "}
+                <span className="text-ink-300">·</span> #{selectedIssue.number}
               </p>
             </div>
             <button
@@ -512,9 +527,7 @@ export default function PostBountyPage() {
                       : "border-ink-200 text-ink-700 hover:border-ink-300 hover:bg-ink-50"
                   )}
                 >
-                  <span className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-2xs font-bold">
-                    {t === "SOL" ? "◎" : "$"}
-                  </span>
+                  <span className="text-sm">{t === "SOL" ? "◎" : "$"}</span>
                   {t}
                 </button>
               ))}
@@ -523,8 +536,8 @@ export default function PostBountyPage() {
               <div className="flex items-start gap-2 mt-2.5 p-2.5 bg-amber-50 border border-amber-100 rounded-lg">
                 <Info className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-800 leading-relaxed">
-                  SOL bounties require 2 wallet approvals — one to post the
-                  current price feed, one to lock funds.
+                  Amount is converted to SOL at the current market price when you post.
+                  1 wallet approval required.
                 </p>
               </div>
             )}
@@ -532,7 +545,7 @@ export default function PostBountyPage() {
 
           {/* Amount */}
           <div>
-            <Label hint="USD value at posting time">Bounty amount</Label>
+            <Label hint="USD value at time of posting">Bounty amount</Label>
             <Input
               type="number"
               min={1}
@@ -590,9 +603,7 @@ export default function PostBountyPage() {
                     <span
                       className="w-1.5 h-1.5 rounded-full"
                       style={{
-                        backgroundColor: active
-                          ? "white"
-                          : LANGUAGE_COLORS[lang],
+                        backgroundColor: active ? "white" : LANGUAGE_COLORS[lang],
                       }}
                     />
                     {lang}
@@ -607,7 +618,7 @@ export default function PostBountyPage() {
             <div className="flex items-center gap-2.5 p-3 bg-ink-50 border border-ink-200 rounded-lg">
               <Wallet className="w-4 h-4 text-ink-500 shrink-0" />
               <p className="text-xs text-ink-700">
-                You'll need to connect your wallet to lock funds in escrow.
+                Connect your wallet — funds will be locked from this wallet.
               </p>
             </div>
           )}
@@ -626,8 +637,8 @@ export default function PostBountyPage() {
                 : `Post bounty${amountUsd ? ` · $${amountUsd}` : ""}`}
             </Button>
             <p className="text-2xs text-ink-400 text-center mt-2.5">
-              Funds will be locked in a Solana program escrow. Returned to your
-              wallet automatically if no one wins by the expiry date.
+              Funds lock in a Solana escrow. Returned automatically if no winner
+              by expiry.
             </p>
           </div>
         </div>
@@ -638,8 +649,11 @@ export default function PostBountyPage() {
         tokenType={tokenType}
         currentStep={txStep}
         error={txError}
-        onClose={() => setTxModalOpen(false)}
+        onClose={() => {
+          if (!submitting) setTxModalOpen(false);
+        }}
       />
+      <AuthModal />
     </div>
   );
 }

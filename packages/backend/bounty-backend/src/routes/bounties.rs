@@ -38,9 +38,11 @@ pub struct BountyRequest {
     pub github_issue_url: String,
     pub wallet: String,
     pub nonce: String,
-    pub signature: String, // wallet ownership proof
-    pub tx_sig: String,    // on-chain transaction hash from post_bounty
+    pub signature: String,
+    pub tx_sig: String,
     pub token_mint: Option<String>,
+    pub languages: Option<Vec<String>>, // new
+    pub hunter_limit: Option<i32>,      // new
 }
 
 #[derive(Serialize)]
@@ -56,6 +58,8 @@ pub struct BountyResponse {
     pub winner_github: Option<String>,
     pub winner_wallet: Option<String>,
     pub token_mint: Option<String>,
+    pub languages: Option<Vec<String>>, // new
+    pub hunter_limit: Option<i32>,      // new
 }
 
 #[derive(Deserialize)]
@@ -135,12 +139,14 @@ async fn create_bounty(
         r#"
     INSERT INTO bounties
         (bounty_id, wallet_pubkey, github_username, amount_in_sol,
-         usd_amount_at_the_time, expiry_date, github_issue_url, token_mint, tx_sig)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         usd_amount_at_the_time, expiry_date, github_issue_url,
+         token_mint, tx_sig, languages, hunter_limit)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING
         bounty_id, wallet_pubkey, github_username, amount_in_sol,
         usd_amount_at_the_time, expiry_date, github_issue_url,
-        status, winner_github, winner_wallet, token_mint
+        status, winner_github, winner_wallet, token_mint,
+        languages, hunter_limit
     "#,
         body.bounty_id,
         body.wallet,
@@ -149,8 +155,10 @@ async fn create_bounty(
         body.usd_amount_at_the_time,
         body.expiry_date,
         body.github_issue_url,
-        bounty_token_mint,
+        body.token_mint,
         body.tx_sig,
+        body.languages.as_deref(), // &Option<[String]>
+        body.hunter_limit,
     )
     .fetch_one(&state.db)
     .await
@@ -204,6 +212,8 @@ async fn create_bounty(
         winner_github: record.winner_github,
         winner_wallet: record.winner_wallet,
         token_mint: record.token_mint,
+        languages: record.languages,
+        hunter_limit: record.hunter_limit,
     }))
 }
 
@@ -221,7 +231,8 @@ async fn list_all(
         SELECT
             bounty_id, wallet_pubkey, github_username, amount_in_sol,
             usd_amount_at_the_time, expiry_date, github_issue_url,
-            status, winner_github, winner_wallet, token_mint
+            status, winner_github, winner_wallet, token_mint,
+            languages, hunter_limit
         FROM bounties
         WHERE status = 'open'
         ORDER BY created_at DESC
@@ -248,13 +259,13 @@ async fn list_all(
             winner_github: r.winner_github,
             winner_wallet: r.winner_wallet,
             token_mint: r.token_mint,
+            languages: r.languages,
+            hunter_limit: r.hunter_limit,
         })
         .collect();
 
     Ok(Json(bounties))
 }
-
-// ── GET /bounties/poster/:github_username ─────────────────────────────────────
 
 async fn list_by_poster(
     State(state): State<AppState>,
@@ -269,7 +280,8 @@ async fn list_by_poster(
         SELECT
             bounty_id, wallet_pubkey, github_username, amount_in_sol,
             usd_amount_at_the_time, expiry_date, github_issue_url,
-            status, winner_github, winner_wallet, token_mint
+            status, winner_github, winner_wallet, token_mint,
+            languages, hunter_limit
         FROM bounties
         WHERE github_username = $1
           AND ($4::text IS NULL OR status = $4)
@@ -299,12 +311,13 @@ async fn list_by_poster(
             winner_github: r.winner_github,
             winner_wallet: r.winner_wallet,
             token_mint: r.token_mint,
+            languages: r.languages,
+            hunter_limit: r.hunter_limit,
         })
         .collect();
 
     Ok(Json(bounties))
 }
-
 async fn register_for_bounty(
     State(state): State<AppState>,
     AuthUser(github_username): AuthUser,
@@ -336,12 +349,12 @@ async fn register_for_bounty(
     let bounty_usd_amount = bounty.usd_amount_at_the_time;
 
     // 3. Prevent poster from registering for their own bounty
-    if bounty.github_username == github_username {
-        return Err((
-            StatusCode::FORBIDDEN,
-            "You cannot register for your own bounty".to_string(),
-        ));
-    }
+    // if bounty.github_username == github_username {
+    //     return Err((
+    //         StatusCode::FORBIDDEN,
+    //         "You cannot register for your own bounty".to_string(),
+    //     ));
+    // }
 
     // 4. Store alert email if provided
     if let Some(ref email) = body.alert_mail {

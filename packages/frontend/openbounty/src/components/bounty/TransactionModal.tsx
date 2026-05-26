@@ -14,35 +14,27 @@ interface TransactionModalProps {
 
 const SOL_STEPS = [
   {
-    label: "Verify wallet ownership",
-    desc: "Sign a message to prove the wallet is yours",
-  },
-  {
-    label: "Post SOL price feed",
-    desc: "Approval 1 of 2 — Pyth posts the current SOL/USD price on-chain",
+    label: "Fetching SOL price",
+    desc: "Getting current market rate from CoinGecko",
   },
   {
     label: "Lock bounty funds",
-    desc: "Approval 2 of 2 — transfer SOL into the bounty escrow",
+    desc: "Approval 1 of 1 — transfer SOL into escrow",
   },
   {
-    label: "Confirm and index",
-    desc: "Waiting for the network to confirm",
+    label: "Confirming",
+    desc: "Waiting for network confirmation",
   },
 ];
 
 const USDC_STEPS = [
   {
-    label: "Verify wallet ownership",
-    desc: "Sign a message to prove the wallet is yours",
-  },
-  {
     label: "Lock bounty funds",
-    desc: "Approval 1 of 1 — transfer USDC into the bounty escrow",
+    desc: "Approval 1 of 1 — transfer USDC into escrow",
   },
   {
-    label: "Confirm and index",
-    desc: "Waiting for the network to confirm",
+    label: "Confirming",
+    desc: "Waiting for network confirmation",
   },
 ];
 
@@ -73,15 +65,15 @@ export function TransactionModal({
                   {error
                     ? "Transaction failed"
                     : isComplete
-                    ? "Bounty posted"
-                    : "Posting your bounty"}
+                      ? "Bounty posted"
+                      : "Posting your bounty"}
                 </Dialog.Title>
                 <Dialog.Description className="text-[13px] text-ink-500 mt-1">
                   {error
                     ? "Something went wrong. You can try again safely."
                     : tokenType === "SOL"
-                    ? "This requires 2 wallet approvals"
-                    : "This requires 1 wallet approval"}
+                      ? "This requires 2 wallet approvals"
+                      : "This requires 1 wallet approval"}
                 </Dialog.Description>
               </div>
               {(isComplete || error) && (

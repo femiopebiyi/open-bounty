@@ -107,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(routes::github_auth::router())
         .merge(routes::github::router())
         .merge(routes::webhook::router())
+        .merge(routes::price::router())
         .merge(routes::claim::router())
         .layer(cors)
         .with_state(state);
