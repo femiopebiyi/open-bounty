@@ -17,6 +17,8 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/bounties", get(list_all).post(create_bounty))
         .route("/bounties/register", post(register_for_bounty))
+        .route("/bounties/:id", get(get_bounty)) // add this
+        .route("/bounties/:id/hunters", get(list_hunters))
         .route("/bounties/poster/:github_username", get(list_by_poster))
 }
 
@@ -59,7 +61,8 @@ pub struct BountyResponse {
     pub winner_wallet: Option<String>,
     pub token_mint: Option<String>,
     pub languages: Option<Vec<String>>, // new
-    pub hunter_limit: Option<i32>,      // new
+    pub hunter_limit: Option<i32>,
+    pub hunter_count: Option<i32>, // new
 }
 
 #[derive(Deserialize)]
@@ -73,6 +76,48 @@ pub struct ListByPosterQuery {
     pub status: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+}
+
+async fn get_bounty(
+    State(state): State<AppState>,
+    Path(bounty_id): Path<i64>,
+) -> Result<Json<BountyResponse>, (StatusCode, String)> {
+    let record = sqlx::query!(
+        r#"
+        SELECT
+            b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
+            b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
+            b.status, b.winner_github, b.winner_wallet, b.token_mint,
+            b.languages, b.hunter_limit,
+            COUNT(bh.github_username) as hunter_count
+        FROM bounties b
+        LEFT JOIN bounty_hunters bh ON bh.bounty_id = b.bounty_id
+        WHERE b.bounty_id = $1
+        GROUP BY b.bounty_id
+        "#,
+        bounty_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .ok_or((StatusCode::NOT_FOUND, "Bounty not found".to_string()))?;
+
+    Ok(Json(BountyResponse {
+        bounty_id: record.bounty_id,
+        wallet_pubkey: record.wallet_pubkey,
+        github_username: record.github_username,
+        amount_in_sol: record.amount_in_sol,
+        usd_amount_at_the_time: record.usd_amount_at_the_time,
+        expiry_date: record.expiry_date,
+        github_issue_url: record.github_issue_url,
+        status: record.status,
+        winner_github: record.winner_github,
+        winner_wallet: record.winner_wallet,
+        token_mint: record.token_mint,
+        languages: record.languages,
+        hunter_limit: record.hunter_limit,
+        hunter_count: record.hunter_count.map(|c| c as i32),
+    }))
 }
 
 // ── POST /bounties ────────────────────────────────────────────────────────────
@@ -214,6 +259,7 @@ async fn create_bounty(
         token_mint: record.token_mint,
         languages: record.languages,
         hunter_limit: record.hunter_limit,
+        hunter_count: Some(0),
     }))
 }
 
@@ -229,14 +275,17 @@ async fn list_all(
     let records = sqlx::query!(
         r#"
         SELECT
-            bounty_id, wallet_pubkey, github_username, amount_in_sol,
-            usd_amount_at_the_time, expiry_date, github_issue_url,
-            status, winner_github, winner_wallet, token_mint,
-            languages, hunter_limit
-        FROM bounties
-        WHERE status = 'open'
-        ORDER BY created_at DESC
-        LIMIT $1 OFFSET $2
+    b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
+    b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
+    b.status, b.winner_github, b.winner_wallet, b.token_mint,
+    b.languages, b.hunter_limit,
+    COUNT(bh.github_username) as hunter_count
+FROM bounties b
+LEFT JOIN bounty_hunters bh ON bh.bounty_id = b.bounty_id
+WHERE b.status = 'open'
+GROUP BY b.bounty_id
+ORDER BY b.created_at DESC
+LIMIT $1 OFFSET $2
         "#,
         limit,
         offset,
@@ -261,6 +310,7 @@ async fn list_all(
             token_mint: r.token_mint,
             languages: r.languages,
             hunter_limit: r.hunter_limit,
+            hunter_count: r.hunter_count.map(|c| c as i32),
         })
         .collect();
 
@@ -278,14 +328,17 @@ async fn list_by_poster(
     let records = sqlx::query!(
         r#"
         SELECT
-            bounty_id, wallet_pubkey, github_username, amount_in_sol,
-            usd_amount_at_the_time, expiry_date, github_issue_url,
-            status, winner_github, winner_wallet, token_mint,
-            languages, hunter_limit
-        FROM bounties
-        WHERE github_username = $1
-          AND ($4::text IS NULL OR status = $4)
-        ORDER BY created_at DESC
+            b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
+            b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
+            b.status, b.winner_github, b.winner_wallet, b.token_mint,
+            b.languages, b.hunter_limit,
+            COUNT(bh.github_username) as hunter_count
+        FROM bounties b
+        LEFT JOIN bounty_hunters bh ON bh.bounty_id = b.bounty_id
+        WHERE b.github_username = $1
+          AND ($4::text IS NULL OR b.status = $4)
+        GROUP BY b.bounty_id
+        ORDER BY b.created_at DESC
         LIMIT $2 OFFSET $3
         "#,
         github_username,
@@ -313,6 +366,7 @@ async fn list_by_poster(
             token_mint: r.token_mint,
             languages: r.languages,
             hunter_limit: r.hunter_limit,
+            hunter_count: r.hunter_count.map(|c| c as i32),
         })
         .collect();
 
@@ -333,16 +387,17 @@ async fn register_for_bounty(
 
     // 2. Check bounty exists and is open, get poster username
     let bounty = sqlx::query!(
-    "SELECT github_username, github_issue_url, token_mint, amount_in_sol, usd_amount_at_the_time FROM bounties WHERE bounty_id = $1 AND status = 'open'",
-    body.bounty_id,
-)
-.fetch_optional(&state.db)
-.await
-.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-.ok_or((
-    StatusCode::NOT_FOUND,
-    "Bounty not found or not open".to_string(),
-))?;
+        "SELECT github_username, github_issue_url, token_mint, amount_in_sol, usd_amount_at_the_time, hunter_limit FROM bounties
+     WHERE bounty_id = $1 AND status = 'open'",
+        body.bounty_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .ok_or((
+        StatusCode::NOT_FOUND,
+        "Bounty not found or not open".to_string(),
+    ))?;
 
     let bounty_token_mint = bounty.token_mint.clone();
     let bounty_amount_in_sol = bounty.amount_in_sol;
@@ -355,6 +410,24 @@ async fn register_for_bounty(
     //         "You cannot register for your own bounty".to_string(),
     //     ));
     // }
+
+    // After the poster self-registration check, add:
+    let count = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM bounty_hunters WHERE bounty_id = $1",
+        body.bounty_id,
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    if let Some(limit) = bounty.hunter_limit {
+        if count.unwrap_or(0) >= limit as i64 {
+            return Err((
+                StatusCode::CONFLICT,
+                "This bounty has reached its hunter limit".to_string(),
+            ));
+        }
+    }
 
     // 4. Store alert email if provided
     if let Some(ref email) = body.alert_mail {
@@ -369,12 +442,13 @@ async fn register_for_bounty(
     }
 
     // 5. Register for bounty with payout wallet
-    sqlx::query!(
+    // In register_for_bounty, replace ON CONFLICT DO NOTHING with:
+    let result = sqlx::query!(
         r#"
-        INSERT INTO bounty_hunters (bounty_id, github_username, payout_wallet)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (bounty_id, github_username) DO NOTHING
-        "#,
+    INSERT INTO bounty_hunters (bounty_id, github_username, payout_wallet)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (bounty_id, github_username) DO NOTHING
+    "#,
         body.bounty_id,
         github_username,
         body.payout_wallet,
@@ -382,6 +456,14 @@ async fn register_for_bounty(
     .execute(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // rows_affected will be 0 if they were already registered
+    if result.rows_affected() == 0 {
+        return Err((
+            StatusCode::CONFLICT,
+            "Already registered for this bounty".to_string(),
+        ));
+    }
 
     // After successful insert into bounty_hunters
     let user = sqlx::query!(
@@ -423,4 +505,40 @@ async fn register_for_bounty(
     }
 
     Ok(StatusCode::CREATED)
+}
+
+async fn list_hunters(
+    State(state): State<AppState>,
+    Path(bounty_id): Path<i64>,
+) -> Result<Json<Vec<HunterResponse>>, (StatusCode, String)> {
+    let records = sqlx::query!(
+        r#"
+        SELECT bh.github_username, bh.payout_wallet, bh.registered_at
+        FROM bounty_hunters bh
+        WHERE bh.bounty_id = $1
+        ORDER BY bh.registered_at ASC
+        "#,
+        bounty_id,
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let hunters = records
+        .into_iter()
+        .map(|r| HunterResponse {
+            github_username: r.github_username,
+            payout_wallet: r.payout_wallet,
+            registered_at: r.registered_at.to_string(),
+        })
+        .collect();
+
+    Ok(Json(hunters))
+}
+
+#[derive(Serialize)]
+pub struct HunterResponse {
+    pub github_username: String,
+    pub payout_wallet: String,
+    pub registered_at: String,
 }

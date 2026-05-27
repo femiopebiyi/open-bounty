@@ -16,14 +16,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // ── Fetch SOL price from backend ──────────────────────────────────────────────
 
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+
 async function fetchSolPrice(): Promise<{ usd_per_sol: number; lamports_per_dollar: number }> {
   try {
-    const res = await fetch("/api/price");
-    if (!res.ok) throw new Error("API error");
-    return res.json();
+    const res = await fetch(`https://api.jup.ag/price/v2?ids=${SOL_MINT}`);
+    if (!res.ok) throw new Error("Jupiter API error");
+    const data = await res.json();
+    const usd_per_sol = parseFloat(data.data[SOL_MINT].price);
+    const lamports_per_dollar = Math.floor((1.0 / usd_per_sol) * 1_000_000_000);
+    return { usd_per_sol, lamports_per_dollar };
   } catch {
-    // Fallback for dev when network is unavailable
-    // Update this manually if the price drifts too far
     console.warn("Using hardcoded SOL price fallback: $170");
     const usd_per_sol = 170;
     const lamports_per_dollar = Math.floor((1.0 / usd_per_sol) * 1_000_000_000);

@@ -25,6 +25,7 @@ import {
   registerForBounty,
   claimBounty,
   fetchHuntersForBounty,
+  fetchBounty,
 } from "@/lib/api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useAuthStore } from "@/store/auth";
@@ -59,14 +60,10 @@ export default function BountyDetailPage() {
   const [alertEmail, setAlertEmail] = useState("");
   const [showRegisterForm, setShowRegisterForm] = useState(false);
 
-  const { data: bounties = [], isLoading } = useQuery({
-    queryKey: ["bounties"],
-    queryFn: () => fetchBounties({ limit: 200 }),
+  const { data: bounty, isLoading } = useQuery<Bounty>({
+    queryKey: ["bounty", id],
+    queryFn: () => fetchBounty(parseInt(id)),
   });
-
-  const bounty: Bounty | undefined = bounties.find(
-    (b: Bounty) => b.bounty_id === parseInt(id)
-  );
 
   const { data: hunters = [] } = useQuery({
     queryKey: ["bounty-hunters", id],
@@ -148,8 +145,10 @@ export default function BountyDetailPage() {
   const isRegistered = hunters.some(
     (h: Hunter) => h.github_username === github_username
   );
+
+  //&& !isPoster
   const canRegister =
-    isAuthenticated && !isPoster && status === "open" && !isRegistered;
+    isAuthenticated && status === "open" && !isRegistered;
   const canClaim =
     isAuthenticated && isWinner && status === "winner_selected";
 
@@ -187,6 +186,11 @@ export default function BountyDetailPage() {
 
             <h1 className="text-[22px] sm:text-2xl font-semibold leading-tight tracking-tight text-ink-950 text-balance">
               {bounty.issue_title || `Issue #${repo?.number}`}
+              {bounty.issue_title && repo?.number && (
+                <span className="ml-2 text-base font-normal text-ink-400 align-middle">
+                  #{repo.number}
+                </span>
+              )}
             </h1>
 
             <div className="flex items-center flex-wrap gap-3 mt-4">
@@ -272,103 +276,6 @@ export default function BountyDetailPage() {
             </div>
           )}
 
-          {/* Register CTA */}
-          {canRegister && !showRegisterForm && (
-            <button
-              onClick={() => requireAuth(() => setShowRegisterForm(true))}
-              className="w-full text-left p-5 border border-dashed border-ink-300 rounded-xl hover:border-ink-500 hover:bg-ink-50/50 transition-colors group"
-            >
-              <p className="text-sm font-medium text-ink-900">
-                Register to hunt this bounty
-              </p>
-              <p className="text-[13px] text-ink-500 mt-0.5">
-                Fix the issue, open a PR with{" "}
-                <code className="text-ink-700 font-mono bg-ink-100 px-1 py-0.5 rounded text-xs">
-                  Closes #{repo?.number}
-                </code>{" "}
-                in the description, and earn the reward.
-              </p>
-            </button>
-          )}
-
-          {/* Already registered */}
-          {isRegistered && status === "open" && (
-            <div className="p-4 bg-ink-50 border border-ink-200 rounded-xl flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                <span className="w-2 h-2 bg-emerald-600 rounded-full" />
-              </div>
-              <div>
-                <p className="text-[13px] font-medium text-ink-900">
-                  You're registered for this bounty
-                </p>
-                <p className="text-xs text-ink-500 mt-0.5">
-                  Open a PR with{" "}
-                  <code className="text-ink-700 font-mono">
-                    Closes #{repo?.number}
-                  </code>{" "}
-                  in the description.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Register form */}
-          {showRegisterForm && (
-            <div className="border border-ink-200 rounded-xl p-5 animate-fade-up">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-ink-900">
-                  Register for this bounty
-                </h3>
-                <button
-                  onClick={() => setShowRegisterForm(false)}
-                  className="text-xs text-ink-500 hover:text-ink-900"
-                >
-                  Cancel
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <Label hint="No verification, paste carefully">
-                    Payout wallet
-                  </Label>
-                  <Input
-                    placeholder="Your Solana address"
-                    value={payoutWallet}
-                    onChange={(e) => setPayoutWallet(e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                  {connected && publicKey && (
-                    <button
-                      onClick={() => setPayoutWallet(publicKey.toBase58())}
-                      className="mt-1.5 text-2xs text-ink-500 hover:text-ink-900 transition-colors"
-                    >
-                      Use connected wallet
-                    </button>
-                  )}
-                </div>
-                <div>
-                  <Label optional hint="We'll email you if you win">
-                    Notification email
-                  </Label>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={alertEmail}
-                    onChange={(e) => setAlertEmail(e.target.value)}
-                  />
-                </div>
-                <Button
-                  fullWidth
-                  onClick={() => registerMutation.mutate()}
-                  loading={registerMutation.isPending}
-                  disabled={!payoutWallet}
-                >
-                  Confirm registration
-                </Button>
-              </div>
-            </div>
-          )}
-
           {/* Hunters */}
           {hunters.length > 0 && (
             <div className="border border-ink-200 rounded-xl overflow-hidden">
@@ -407,6 +314,105 @@ export default function BountyDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Register CTA */}
+        {canRegister && !showRegisterForm && (
+          <button
+            onClick={() => requireAuth(() => setShowRegisterForm(true))}
+            className="w-full text-left p-5 border border-dashed border-ink-300 rounded-xl hover:border-ink-500 hover:bg-ink-50/50 transition-colors group"
+          >
+            <p className="text-sm font-medium text-ink-900">
+              Register to hunt this bounty
+            </p>
+            <p className="text-[13px] text-ink-500 mt-0.5">
+              Fix the issue, open a PR with{" "}
+              <code className="text-ink-700 font-mono bg-ink-100 px-1 py-0.5 rounded text-xs">
+                Closes #{repo?.number}
+              </code>{" "}
+              in the description, and earn the reward.
+            </p>
+          </button>
+        )}
+
+        {/* Already registered */}
+        {isRegistered && status === "open" && (
+          <div className="p-4 bg-ink-50 border border-ink-200 rounded-xl flex items-center gap-3">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <span className="w-2 h-2 bg-emerald-600 rounded-full" />
+            </div>
+            <div>
+              <p className="text-[13px] font-medium text-ink-900">
+                You're registered for this bounty
+              </p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                Open a PR with{" "}
+                <code className="text-ink-700 font-mono">
+                  Closes #{repo?.number}
+                </code>{" "}
+                in the description.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Register form */}
+        {showRegisterForm && (
+          <div className="border border-ink-200 rounded-xl p-5 animate-fade-up">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-ink-900">
+                Register for this bounty
+              </h3>
+              <button
+                onClick={() => setShowRegisterForm(false)}
+                className="text-xs text-ink-500 hover:text-ink-900"
+              >
+                Cancel
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label hint="No verification, paste carefully">
+                  Payout wallet
+                </Label>
+                <Input
+                  placeholder="Your Solana address"
+                  value={payoutWallet}
+                  onChange={(e) => setPayoutWallet(e.target.value)}
+                  className="font-mono text-xs"
+                />
+                {connected && publicKey && (
+                  <button
+                    onClick={() => setPayoutWallet(publicKey.toBase58())}
+                    className="mt-1.5 text-2xs text-ink-500 hover:text-ink-900 transition-colors"
+                  >
+                    Use connected wallet
+                  </button>
+                )}
+              </div>
+              <div>
+                <Label optional hint="We'll email you if you win">
+                  Notification email
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={alertEmail}
+                  onChange={(e) => setAlertEmail(e.target.value)}
+                />
+              </div>
+              <Button
+                fullWidth
+                onClick={() => registerMutation.mutate()}
+                loading={registerMutation.isPending}
+                disabled={!payoutWallet}
+              >
+                Confirm registration
+              </Button>
+            </div>
+          </div>
+        )}
+
+
 
         {/* Sidebar */}
         <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">

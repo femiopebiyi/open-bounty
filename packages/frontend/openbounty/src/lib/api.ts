@@ -32,6 +32,10 @@ export const fetchBountiesByPoster = async (username: string, status?: string) =
   const { data } = await api.get(`/bounties/poster/${username}`, { params: { status } });
   return data;
 };
+export const fetchBounty = async (bounty_id: number) => {
+  const { data } = await api.get(`/bounties/${bounty_id}`);
+  return data;
+};
 
 export const createBounty = async (payload: any) => {
   const { data } = await api.post("/bounties", payload);
