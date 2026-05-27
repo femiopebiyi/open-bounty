@@ -9,15 +9,11 @@ export interface Bounty {
   usd_amount_at_the_time: number;
   expiry_date: number;
   github_issue_url: string;
+  issue_title?: string;          // add this
   status: BountyStatus;
   winner_github: string | null;
   winner_wallet: string | null;
   token_mint: string | null;
-  tx_sig?: string | null;
-  // optional enrichments
-  issue_title?: string;
-  issue_number?: number;
-  repo_name?: string;
   languages?: string[];
   hunter_count?: number;
   hunter_limit?: number;

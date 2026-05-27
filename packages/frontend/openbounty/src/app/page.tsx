@@ -36,14 +36,14 @@ export default function HomePage() {
     const open = bounties.filter(
       (b: Bounty) => effectiveStatus(b) === "open"
     );
-    const claimed = bounties.filter((b: Bounty) => b.status === "claimed");
+    const claimed = bounties.filter(
+      (b: Bounty) => b.status === "claimed"  // only fully claimed
+    );
     const totalLocked = open.reduce(
-      (sum: number, b: Bounty) => sum + b.usd_amount_at_the_time,
-      0
+      (sum: number, b: Bounty) => sum + b.usd_amount_at_the_time, 0
     );
     const totalPaid = claimed.reduce(
-      (sum: number, b: Bounty) => sum + b.usd_amount_at_the_time,
-      0
+      (sum: number, b: Bounty) => sum + b.usd_amount_at_the_time, 0
     );
     return {
       openCount: open.length,
@@ -95,7 +95,7 @@ export default function HomePage() {
             </h1>
             <p className="text-pretty text-base sm:text-[17px] text-ink-500 mt-5 leading-relaxed max-w-xl">
               Post a bounty on any open issue. Funds lock in escrow until a pull
-              request merges — then the winning hunter claims their reward.
+              request merges, then the winning hunter claims their reward.
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-7">
               <Link href="/post">
@@ -222,9 +222,8 @@ export default function HomePage() {
             <p className="text-xs text-ink-400 mb-3 tabular">
               {isLoading
                 ? "Loading…"
-                : `${filtered.length} ${
-                    filtered.length === 1 ? "bounty" : "bounties"
-                  }`}
+                : `${filtered.length} ${filtered.length === 1 ? "bounty" : "bounties"
+                }`}
             </p>
 
             {/* List */}

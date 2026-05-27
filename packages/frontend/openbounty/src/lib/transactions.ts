@@ -20,10 +20,10 @@ const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 async function fetchSolPrice(): Promise<{ usd_per_sol: number; lamports_per_dollar: number }> {
   try {
-    const res = await fetch(`https://api.jup.ag/price/v2?ids=${SOL_MINT}`);
+    const res = await fetch(`https://lite-api.jup.ag/price/v3?ids=${SOL_MINT}`);
     if (!res.ok) throw new Error("Jupiter API error");
     const data = await res.json();
-    const usd_per_sol = parseFloat(data.data[SOL_MINT].price);
+    const usd_per_sol = data[SOL_MINT].usdPrice;
     const lamports_per_dollar = Math.floor((1.0 / usd_per_sol) * 1_000_000_000);
     return { usd_per_sol, lamports_per_dollar };
   } catch {

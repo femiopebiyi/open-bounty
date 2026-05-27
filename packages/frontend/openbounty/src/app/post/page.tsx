@@ -185,7 +185,7 @@ export default function PostBountyPage() {
           onStepChange: setTxStep,
         });
       } else {
-        const usdcMint = process.env.NEXT_PUBLIC_USDC_MINT;
+        const usdcMint = process.env.NEXT_PUBLIC_USDC_MINT ?? "EaUe6ri7FwqgxVyDcxGAFvfnNczdZVpmosTWo7RCXYZE";
         if (!usdcMint) throw new Error("USDC mint address not configured");
 
         txSig = await postBountyUsdc({
@@ -209,14 +209,14 @@ export default function PostBountyPage() {
         usd_amount_at_the_time: amountMicro,
         expiry_date: expiryDate,
         github_issue_url: selectedIssue.html_url,
+        issue_title: selectedIssue.title,   // add this
         wallet: publicKey.toBase58(),
         nonce,
         signature,
         tx_sig: txSig,
-        token_mint:
-          tokenType === "USDC"
-            ? process.env.NEXT_PUBLIC_USDC_MINT || null
-            : null,
+        token_mint: tokenType === "USDC"
+          ? process.env.NEXT_PUBLIC_USDC_MINT || null
+          : null,
         languages,
         hunter_limit: parseInt(hunterLimit),
       });

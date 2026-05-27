@@ -42,8 +42,8 @@ async fn send_email(
 fn format_amount(amount: i64, token_mint: &Option<String>) -> String {
     if token_mint.is_none() {
         // SOL — 9 decimals (lamports)
-        let value = amount as f64 / 1_000_000_000.0;
-        format!("{:.4} SOL", value)
+        let value = amount as f64 / 1_000_000.0;
+        format!("{:.4}$ SOL", value)
     } else {
         // USDC — 6 decimals (micro-USDC)
         let value = amount as f64 / 1_000_000.0;

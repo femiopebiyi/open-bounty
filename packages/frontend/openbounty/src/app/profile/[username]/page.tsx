@@ -48,18 +48,28 @@ export default function ProfilePage() {
     (b: Bounty) => b.winner_github === username
   );
 
-  const totalEarned = huntingBounties
-    .filter((b: Bounty) => b.status === "claimed")
-    .reduce((sum: number, b: Bounty) => sum + b.usd_amount_at_the_time, 0);
 
-  const bountiesWon = huntingBounties.filter(
-    (b: Bounty) => b.status === "claimed"
-  ).length;
 
   const totalPosted = postedBounties.reduce(
     (sum: number, b: Bounty) => sum + b.usd_amount_at_the_time,
     0
   );
+
+  // Only count bounties with status = 'claimed', not winner_selected
+  const totalEarned = allBounties
+    .filter(
+      (b: Bounty) => b.status === "claimed" && b.winner_github === username
+    )
+    .reduce((sum: number, b: Bounty) => sum + b.usd_amount_at_the_time, 0);
+
+  const bountiesWon = allBounties.filter(
+    (b: Bounty) =>
+      b.status === "claimed" && b.winner_github === username
+  ).length;
+
+  const totalPaidOut = postedBounties
+    .filter((b: Bounty) => b.status === "claimed")
+    .reduce((sum: number, b: Bounty) => sum + b.usd_amount_at_the_time, 0);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
@@ -106,7 +116,7 @@ export default function ProfilePage() {
         <StatBlock label="Total earned" value={formatUSD(totalEarned)} />
         <StatBlock label="Bounties won" value={bountiesWon.toString()} />
         <StatBlock label="Bounties posted" value={postedBounties.length.toString()} />
-        <StatBlock label="Total paid out" value={formatUSD(totalPosted)} />
+        <StatBlock label="Total paid out" value={formatUSD(totalPaidOut)} />
       </div>
 
       {/* Tabs */}

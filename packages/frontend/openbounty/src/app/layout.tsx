@@ -11,7 +11,7 @@ import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: {
-    default: "OpenBounty — GitHub bounties on Solana",
+    default: "OpenBounty, GitHub bounties on Solana",
     template: "%s · OpenBounty",
   },
   description:

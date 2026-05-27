@@ -38,6 +38,7 @@ pub struct BountyRequest {
     pub usd_amount_at_the_time: i64,
     pub expiry_date: i64,
     pub github_issue_url: String,
+    pub issue_title: Option<String>,
     pub wallet: String,
     pub nonce: String,
     pub signature: String,
@@ -56,6 +57,7 @@ pub struct BountyResponse {
     pub usd_amount_at_the_time: i64,
     pub expiry_date: i64,
     pub github_issue_url: String,
+    pub issue_title: Option<String>,
     pub status: String,
     pub winner_github: Option<String>,
     pub winner_wallet: Option<String>,
@@ -87,7 +89,7 @@ async fn get_bounty(
         SELECT
             b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
             b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
-            b.status, b.winner_github, b.winner_wallet, b.token_mint,
+            b.status, b.winner_github, b.winner_wallet, b.issue_title, b.token_mint,
             b.languages, b.hunter_limit,
             COUNT(bh.github_username) as hunter_count
         FROM bounties b
@@ -110,6 +112,7 @@ async fn get_bounty(
         usd_amount_at_the_time: record.usd_amount_at_the_time,
         expiry_date: record.expiry_date,
         github_issue_url: record.github_issue_url,
+        issue_title: record.issue_title,
         status: record.status,
         winner_github: record.winner_github,
         winner_wallet: record.winner_wallet,
@@ -185,13 +188,13 @@ async fn create_bounty(
     INSERT INTO bounties
         (bounty_id, wallet_pubkey, github_username, amount_in_sol,
          usd_amount_at_the_time, expiry_date, github_issue_url,
-         token_mint, tx_sig, languages, hunter_limit)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         issue_title, token_mint, tx_sig, languages, hunter_limit)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING
         bounty_id, wallet_pubkey, github_username, amount_in_sol,
         usd_amount_at_the_time, expiry_date, github_issue_url,
-        status, winner_github, winner_wallet, token_mint,
-        languages, hunter_limit
+        issue_title, status, winner_github, winner_wallet,
+        token_mint, languages, hunter_limit
     "#,
         body.bounty_id,
         body.wallet,
@@ -200,9 +203,10 @@ async fn create_bounty(
         body.usd_amount_at_the_time,
         body.expiry_date,
         body.github_issue_url,
+        body.issue_title,
         body.token_mint,
         body.tx_sig,
-        body.languages.as_deref(), // &Option<[String]>
+        body.languages.as_deref(),
         body.hunter_limit,
     )
     .fetch_one(&state.db)
@@ -253,13 +257,14 @@ async fn create_bounty(
         usd_amount_at_the_time: record.usd_amount_at_the_time,
         expiry_date: record.expiry_date,
         github_issue_url: record.github_issue_url,
+        issue_title: record.issue_title,
         status: record.status,
         winner_github: record.winner_github,
         winner_wallet: record.winner_wallet,
         token_mint: record.token_mint,
         languages: record.languages,
         hunter_limit: record.hunter_limit,
-        hunter_count: Some(0),
+        hunter_count: None, // not needed on create
     }))
 }
 
@@ -277,7 +282,7 @@ async fn list_all(
         SELECT
     b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
     b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
-    b.status, b.winner_github, b.winner_wallet, b.token_mint,
+    b.status, b.winner_github, b.winner_wallet, b.issue_title, b.token_mint,
     b.languages, b.hunter_limit,
     COUNT(bh.github_username) as hunter_count
 FROM bounties b
@@ -304,6 +309,7 @@ LIMIT $1 OFFSET $2
             usd_amount_at_the_time: r.usd_amount_at_the_time,
             expiry_date: r.expiry_date,
             github_issue_url: r.github_issue_url,
+            issue_title: r.issue_title,
             status: r.status,
             winner_github: r.winner_github,
             winner_wallet: r.winner_wallet,
@@ -330,7 +336,7 @@ async fn list_by_poster(
         SELECT
             b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
             b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
-            b.status, b.winner_github, b.winner_wallet, b.token_mint,
+            b.status, b.winner_github, b.winner_wallet, b.issue_title, b.token_mint,
             b.languages, b.hunter_limit,
             COUNT(bh.github_username) as hunter_count
         FROM bounties b
@@ -360,6 +366,7 @@ async fn list_by_poster(
             usd_amount_at_the_time: r.usd_amount_at_the_time,
             expiry_date: r.expiry_date,
             github_issue_url: r.github_issue_url,
+            issue_title: r.issue_title,
             status: r.status,
             winner_github: r.winner_github,
             winner_wallet: r.winner_wallet,
