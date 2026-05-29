@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT bh.github_username, bh.payout_wallet, bh.registered_at\n        FROM bounty_hunters bh\n        WHERE bh.bounty_id = $1\n        ORDER BY bh.registered_at ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "github_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "payout_wallet",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "registered_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "411aba39802b747e4225cf9f0b70ec22c5f9329f8e084149a54f54d2cb5a4254"
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT bh.payout_wallet, u.email\n             FROM bounty_hunters bh\n             JOIN users u ON u.github_username = bh.github_username\n             WHERE bh.bounty_id = $1\n               AND bh.github_username = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payout_wallet",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "3015c7fd0df37c4aa70570605c2c6e3827a0f133223b41764de7e6f670b9823e"
+}

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT bounty_id, wallet_pubkey, winner_github, winner_wallet, token_mint\n        FROM bounties\n        WHERE bounty_id = $1\n          AND status = 'winner_selected'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bounty_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "wallet_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "winner_github",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "winner_wallet",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "token_mint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "671935405e6f03974ab2926b50b41c20493e99117bfbeaeb2786c77581628cf9"
+}

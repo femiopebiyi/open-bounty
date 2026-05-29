@@ -1,0 +1,111 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    INSERT INTO bounties\n        (bounty_id, wallet_pubkey, github_username, amount_in_sol,\n         usd_amount_at_the_time, expiry_date, github_issue_url,\n         issue_title, token_mint, tx_sig, languages, hunter_limit)\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n    RETURNING\n        bounty_id, wallet_pubkey, github_username, amount_in_sol,\n        usd_amount_at_the_time, expiry_date, github_issue_url,\n        issue_title, status, winner_github, winner_wallet,\n        token_mint, languages, hunter_limit\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bounty_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "wallet_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "github_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_in_sol",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "usd_amount_at_the_time",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "expiry_date",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "github_issue_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "issue_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "winner_github",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "winner_wallet",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "token_mint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "languages",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 13,
+        "name": "hunter_limit",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e36ac66cc86441cff6bcb892271f06f564beed374dd7e500c338c95866a76b52"
+}

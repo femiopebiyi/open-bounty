@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    INSERT INTO bounty_hunters (bounty_id, github_username, payout_wallet)\n    VALUES ($1, $2, $3)\n    ON CONFLICT (bounty_id, github_username) DO NOTHING\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2d6acb978b0048df56961296053d0cd41194b8b6013bdd6272258849e49b8196"
+}

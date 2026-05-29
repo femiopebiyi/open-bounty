@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET wallet_pubkey = $1 WHERE github_username = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2b4798ac033898485dbea7d55ba2f416eb51b0e304da6499ca032a3a30b65dd3"
+}

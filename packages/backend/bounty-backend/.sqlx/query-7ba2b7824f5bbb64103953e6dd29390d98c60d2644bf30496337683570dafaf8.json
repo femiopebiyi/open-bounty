@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT bounty_id, github_issue_url, wallet_pubkey, created_at\n        FROM bounties\n        WHERE status = 'open'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bounty_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "github_issue_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "wallet_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7ba2b7824f5bbb64103953e6dd29390d98c60d2644bf30496337683570dafaf8"
+}

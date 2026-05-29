@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT\n        github_username,\n        total_earned,\n        bounties_won\n    FROM (\n        SELECT\n            winner_github as github_username,\n            SUM(usd_amount_at_the_time)::bigint as total_earned,\n            COUNT(*)::bigint as bounties_won\n        FROM bounties\n        WHERE status = 'claimed'\n          AND winner_github IS NOT NULL\n        GROUP BY winner_github\n    ) ranked\n    ORDER BY total_earned DESC\n    LIMIT $1 OFFSET $2\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "github_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_earned",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "bounties_won",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "5f1669d05da135e24be9a0e6e54f93369558f95393305440f40145f74ee0aaa9"
+}

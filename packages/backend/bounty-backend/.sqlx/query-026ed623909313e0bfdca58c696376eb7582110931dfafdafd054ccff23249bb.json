@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE bounties\n        SET status       = 'winner_selected',\n            winner_github = $1,\n            winner_wallet = $2\n        WHERE bounty_id  = $3\n          AND status     = 'open'\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "026ed623909313e0bfdca58c696376eb7582110931dfafdafd054ccff23249bb"
+}

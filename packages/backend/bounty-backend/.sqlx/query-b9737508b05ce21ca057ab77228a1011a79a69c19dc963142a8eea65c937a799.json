@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO faucet_claims (wallet_pubkey) VALUES ($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b9737508b05ce21ca057ab77228a1011a79a69c19dc963142a8eea65c937a799"
+}

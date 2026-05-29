@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bounties SET status = 'expired' WHERE bounty_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d4b6ee2a691ec20622b9f6f9ab3cc916af1a8a95062552635a578f85bc8060b3"
+}

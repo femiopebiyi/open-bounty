@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT bounty_id, wallet_pubkey, token_mint\n        FROM bounties\n        WHERE status = 'open'\n          AND expiry_date < $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bounty_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "wallet_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "token_mint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "f78ba89bf88046bec0bf83ead2347f032ef19c3722a1d82951dceffba81b142b"
+}

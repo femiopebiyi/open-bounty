@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT claimed_at FROM faucet_claims\n        WHERE wallet_pubkey = $1\n        ORDER BY claimed_at DESC\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "claimed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "36c0a34ca402bf4f4fa72e3eb631a2bdb0bb00de7ed2443f9a1860e6f3d6dd94"
+}

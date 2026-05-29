@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO users (github_username, email)\n        VALUES ($1, $2)\n        ON CONFLICT (github_username)\n        DO UPDATE SET email = COALESCE(EXCLUDED.email, users.email)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0c7023b69f46f17eff39c0167dadd0c4152318cdb3eb6733c30b0bcbcc7a853c"
+}

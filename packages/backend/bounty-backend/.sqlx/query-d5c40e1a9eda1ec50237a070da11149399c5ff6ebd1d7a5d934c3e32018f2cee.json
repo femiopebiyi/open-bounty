@@ -1,0 +1,107 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,\n            b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,\n            b.issue_title, b.status, b.winner_github, b.winner_wallet,\n            b.token_mint, b.languages, b.hunter_limit,\n            COUNT(bh.github_username) as hunter_count\n        FROM bounties b\n        LEFT JOIN bounty_hunters bh ON bh.bounty_id = b.bounty_id\n        GROUP BY b.bounty_id\n        ORDER BY b.created_at DESC\n        LIMIT $1 OFFSET $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bounty_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "wallet_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "github_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_in_sol",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "usd_amount_at_the_time",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "expiry_date",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "github_issue_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "issue_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "winner_github",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "winner_wallet",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "token_mint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "languages",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 13,
+        "name": "hunter_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "hunter_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "d5c40e1a9eda1ec50237a070da11149399c5ff6ebd1d7a5d934c3e32018f2cee"
+}

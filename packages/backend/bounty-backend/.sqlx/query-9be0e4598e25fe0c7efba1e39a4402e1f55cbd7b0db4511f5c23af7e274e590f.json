@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bounties SET status = 'claimed', tx_sig = $1 WHERE bounty_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9be0e4598e25fe0c7efba1e39a4402e1f55cbd7b0db4511f5c23af7e274e590f"
+}

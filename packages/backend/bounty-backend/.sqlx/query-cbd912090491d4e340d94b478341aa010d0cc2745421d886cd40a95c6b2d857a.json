@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT github_username, github_issue_url, token_mint, amount_in_sol, usd_amount_at_the_time, hunter_limit FROM bounties\n     WHERE bounty_id = $1 AND status = 'open'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "github_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "github_issue_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "token_mint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_in_sol",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "usd_amount_at_the_time",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "hunter_limit",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "cbd912090491d4e340d94b478341aa010d0cc2745421d886cd40a95c6b2d857a"
+}
