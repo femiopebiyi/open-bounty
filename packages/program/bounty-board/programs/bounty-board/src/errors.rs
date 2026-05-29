@@ -28,4 +28,6 @@ pub enum BountyError {
     WrongTokenMint,
     #[msg("Hunter token account does not match winner")]
     WrongHunterAccount,
+    #[msg("Bounty has not expired yet")]
+    NotExpired,
 }

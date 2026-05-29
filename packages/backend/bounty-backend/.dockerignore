@@ -1,0 +1,5 @@
+target/
+.env
+.env.local
+*.json
+!Cargo.toml

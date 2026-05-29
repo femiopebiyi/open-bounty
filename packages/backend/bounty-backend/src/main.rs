@@ -11,6 +11,7 @@ mod auth;
 mod db;
 mod email;
 mod github;
+mod poller;
 mod routes;
 mod solana;
 
@@ -95,6 +96,8 @@ async fn main() -> anyhow::Result<()> {
         frontend_url,
     };
 
+    poller::start(state.clone());
+
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
@@ -106,11 +109,12 @@ async fn main() -> anyhow::Result<()> {
         .merge(routes::auth::router())
         .merge(routes::github_auth::router())
         .merge(routes::github::router())
-        .merge(routes::webhook::router())
+        // .merge(routes::webhook::router())
         .merge(routes::price::router())
         .merge(routes::leaderboard::router())
         .merge(routes::mint::router())
         .merge(routes::claim::router())
+        .merge(routes::poller::router())
         .layer(cors)
         .with_state(state);
 

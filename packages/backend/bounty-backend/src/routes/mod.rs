@@ -5,5 +5,6 @@ pub mod github;
 pub mod github_auth;
 pub mod leaderboard;
 pub mod mint;
+pub mod poller;
 pub mod price;
 pub mod webhook;

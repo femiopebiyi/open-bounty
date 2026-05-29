@@ -280,17 +280,16 @@ async fn list_all(
     let records = sqlx::query!(
         r#"
         SELECT
-    b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
-    b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
-    b.status, b.winner_github, b.winner_wallet, b.issue_title, b.token_mint,
-    b.languages, b.hunter_limit,
-    COUNT(bh.github_username) as hunter_count
-FROM bounties b
-LEFT JOIN bounty_hunters bh ON bh.bounty_id = b.bounty_id
-WHERE b.status = 'open'
-GROUP BY b.bounty_id
-ORDER BY b.created_at DESC
-LIMIT $1 OFFSET $2
+            b.bounty_id, b.wallet_pubkey, b.github_username, b.amount_in_sol,
+            b.usd_amount_at_the_time, b.expiry_date, b.github_issue_url,
+            b.issue_title, b.status, b.winner_github, b.winner_wallet,
+            b.token_mint, b.languages, b.hunter_limit,
+            COUNT(bh.github_username) as hunter_count
+        FROM bounties b
+        LEFT JOIN bounty_hunters bh ON bh.bounty_id = b.bounty_id
+        GROUP BY b.bounty_id
+        ORDER BY b.created_at DESC
+        LIMIT $1 OFFSET $2
         "#,
         limit,
         offset,

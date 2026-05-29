@@ -52,4 +52,12 @@ pub mod bounty_board {
     pub fn close_bounty_test(ctx: Context<CloseBountyTest>, bounty_id: u64) -> Result<()> {
         instructions::close_bounty_test::close_bounty_test(ctx, bounty_id)
     }
+
+    pub fn refund_bounty_usdc(ctx: Context<RefundBountyUsdc>) -> Result<()> {
+        instructions::refund_bounty_usdc::refund_bounty_usdc(ctx)
+    }
+
+    pub fn refund_bounty(ctx: Context<RefundBounty>) -> Result<()> {
+        instructions::refund_bounty_sol::refund_bounty(ctx)
+    }
 }
