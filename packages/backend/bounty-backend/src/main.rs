@@ -1,3 +1,4 @@
+use axum::http::{HeaderValue, Method, header};
 use axum::{
     Router,
     routing::{get, post},
@@ -5,8 +6,7 @@ use axum::{
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 use std::{str::FromStr, sync::Arc};
 use tokio::net::TcpListener;
-use tower_http::cors::{Any, CorsLayer};
-
+use tower_http::cors::{AllowOrigin, CorsLayer};
 mod auth;
 mod db;
 mod email;
@@ -98,10 +98,28 @@ async fn main() -> anyhow::Result<()> {
 
     poller::start(state.clone());
 
+    let allowed_origins: Vec<HeaderValue> = [
+        "https://openbounty.tech",
+        "https://www.openbounty.tech",
+        "https://openbounty-frontend.vercel.app",
+        "http://localhost:3001", // local dev
+    ]
+    .iter()
+    .map(|s| s.parse().unwrap())
+    .collect();
+
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_origin(AllowOrigin::list(allowed_origins))
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::ACCEPT])
+        .allow_credentials(false)
+        .max_age(std::time::Duration::from_secs(3600));
 
     let app = Router::new()
         .route("/health", get(health))
