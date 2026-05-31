@@ -1,31 +1,26 @@
-# fly.toml app configuration file generated for openbounty-backend on 2026-05-29T19:34:52+01:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
-app = 'openbounty-backend'
-primary_region = 'lhr'
+app = "openbounty-backend"
+primary_region = "lhr"
 
 [build]
-
-[env]
-  PORT = '3000'
-  SOLANA_RPC_URL = 'https://devnet.helius-rpc.com/?api-key=da92991b-a93e-4fba-b276-80449f95122a'
+  dockerfile = "Dockerfile"
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = 'off'
+  auto_stop_machines = false
   auto_start_machines = true
   min_machines_running = 1
 
   [http_service.concurrency]
-    type = 'requests'
+    type = "requests"
     hard_limit = 200
     soft_limit = 150
 
+[env]
+  PORT = "3000"
+  SOLANA_RPC_URL = "https://devnet.helius-rpc.com/?api-key=da92991b-a93e-4fba-b276-80449f95122a"
+
 [[vm]]
-  memory = '512mb'
-  cpu_kind = 'shared'
+  memory = "512mb"
+  cpu_kind = "shared"
   cpus = 1
-  memory_mb = 512

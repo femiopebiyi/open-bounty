@@ -1,0 +1,6 @@
+target/
+packages/frontend/
+.env
+.env.local
+*.md
+.git/

@@ -7,7 +7,7 @@ members = ["packages/backend/bounty-backend",
 [workspace.dependencies]
 anchor-lang   = { version = "0.32.1", features = ["init-if-needed"] }
 anchor-spl    = { version = "0.32.1", features = ["token", "associated_token"] }
-spl-associated-token-account = { version = "6.0.0" }
+spl-associated-token-account = { version = "6.0.0", features = ["no-entrypoint"] }
 
 tokio         = { version = "1", features = ["full"] }
 axum          = { version = "0.7", features = ["macros"] }
@@ -21,7 +21,7 @@ serde_json = { version = "1" }
 
 solana-sdk    = { version = "2.1.0" }
 solana-client = { version = "2.1.0" }
-spl-token = {version = "4"}
+spl-token = {version = "4", features = ["no-entrypoint"]}
 anchor-client   = "0.32.1"
 hmac            = "0.12"
 
