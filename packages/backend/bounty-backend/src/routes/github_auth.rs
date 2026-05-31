@@ -75,13 +75,16 @@ pub async fn github_callback(
     // 3. Upsert user
     sqlx::query!(
         r#"
-        INSERT INTO users (github_username, email)
-        VALUES ($1, $2)
-        ON CONFLICT (github_username)
-        DO UPDATE SET email = COALESCE(EXCLUDED.email, users.email)
-        "#,
+    INSERT INTO users (github_username, email, github_access_token)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (github_username)
+    DO UPDATE SET 
+        email = COALESCE(EXCLUDED.email, users.email),
+        github_access_token = EXCLUDED.github_access_token
+    "#,
         github_user.login,
         github_user.email,
+        token_res.access_token,
     )
     .execute(&state.db)
     .await
