@@ -16,6 +16,7 @@ use crate::{
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/bounties", get(list_all).post(create_bounty))
+        .route("/bounties/check", get(check_issue))
         .route("/bounties/register", post(register_for_bounty))
         .route("/bounties/:id", get(get_bounty)) // add this
         .route("/bounties/:id/hunters", get(list_hunters))
@@ -547,4 +548,31 @@ pub struct HunterResponse {
     pub github_username: String,
     pub payout_wallet: String,
     pub registered_at: String,
+}
+
+async fn check_issue(
+    State(state): State<AppState>,
+    Query(params): Query<CheckIssueQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let exists = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM bounties WHERE github_issue_url = $1 AND status = 'open'",
+        params.issue_url,
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    if exists.unwrap_or(0) > 0 {
+        return Err((
+            StatusCode::CONFLICT,
+            "An open bounty already exists for this issue".to_string(),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+#[derive(Deserialize)]
+pub struct CheckIssueQuery {
+    pub issue_url: String,
 }
