@@ -155,6 +155,18 @@ export default function PostBountyPage() {
       return;
     }
 
+    // ── Pre-flight check — before modal or wallet ──
+    try {
+      await api.get(
+        `/bounties/check?issue_url=${encodeURIComponent(selectedIssue.html_url)}`
+      );
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data || "An open bounty already exists for this issue"
+      );
+      return;
+    }
+
     setTxModalOpen(true);
     setTxStep(0);
     setTxError(null);
@@ -165,14 +177,12 @@ export default function PostBountyPage() {
       const expiryDate = daysToUnixTimestamp(parseInt(daysActive));
       const amountMicro = usdToMicroDollars(amt);
 
-      // ── Step 0: Verify wallet ownership via nonce ──
       setTxStep(0);
       const { nonce, message } = await getNonce(publicKey.toBase58());
       const messageBytes = new TextEncoder().encode(message);
       const signatureBytes = await signMessage(messageBytes);
       const signature = bs58.encode(signatureBytes);
 
-      // ── Steps 1-N: On-chain transaction(s) ──
       let txSig: string;
 
       if (tokenType === "SOL") {
@@ -199,7 +209,6 @@ export default function PostBountyPage() {
         });
       }
 
-      // ── Final step: Record in backend ──
       const totalSteps = tokenType === "SOL" ? 3 : 2;
       setTxStep(totalSteps);
 
@@ -209,7 +218,7 @@ export default function PostBountyPage() {
         usd_amount_at_the_time: amountMicro,
         expiry_date: expiryDate,
         github_issue_url: selectedIssue.html_url,
-        issue_title: selectedIssue.title,   // add this
+        issue_title: selectedIssue.title,
         wallet: publicKey.toBase58(),
         nonce,
         signature,
@@ -228,7 +237,6 @@ export default function PostBountyPage() {
       }, 1500);
     } catch (err: any) {
       console.error(err);
-      // User rejected wallet signature
       if (
         err?.message?.includes("User rejected") ||
         err?.message?.includes("Transaction cancelled")

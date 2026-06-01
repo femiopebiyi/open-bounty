@@ -192,12 +192,20 @@ async fn check_bounty(
         bounty_id
     );
 
-    // Send winner notification email in background
-    // Don't let email failure block or error the poll cycle
+    // After DB update, before sending email — fetch amount and token_mint
+    let bounty_details = sqlx::query!(
+        "SELECT usd_amount_at_the_time, token_mint FROM bounties WHERE bounty_id = $1",
+        bounty_id,
+    )
+    .fetch_one(&state.db)
+    .await?;
+
     if let Some(email) = hunter.email {
         let resend_key = state.resend_api_key.clone();
         let http_client = state.http_client.clone();
         let winner_username = pr.author.clone();
+        let amount = bounty_details.usd_amount_at_the_time;
+        let token_mint = bounty_details.token_mint.clone();
 
         tokio::spawn(async move {
             if let Err(e) = crate::email::send_winner_notification(
@@ -205,8 +213,8 @@ async fn check_bounty(
                 &email,
                 &winner_username,
                 bounty_id,
-                0,
-                None,
+                amount,
+                token_mint,
                 &http_client,
             )
             .await

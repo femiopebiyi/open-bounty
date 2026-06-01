@@ -52,12 +52,11 @@ export default function BountyDetailPage() {
   const router = useRouter();
   const { publicKey, connected } = useWallet();
   const { setVisible } = useWalletModal();
-  const { github_username, isAuthenticated } = useAuthStore();
+  const { github_username, isAuthenticated, email } = useAuthStore();
   const { AuthModal, requireAuth } = useAuthGuard();
   const queryClient = useQueryClient();
 
   const [payoutWallet, setPayoutWallet] = useState("");
-  const [alertEmail, setAlertEmail] = useState("");
   const [showRegisterForm, setShowRegisterForm] = useState(false);
 
   const { data: bounty, isLoading } = useQuery<Bounty>({
@@ -82,7 +81,7 @@ export default function BountyDetailPage() {
       registerForBounty({
         bounty_id: parseInt(id),
         payout_wallet: payoutWallet,
-        alert_mail: alertEmail || undefined,
+        alert_mail: email || undefined,
       }),
     onSuccess: () => {
       toast.success("Registered. Good luck.");
@@ -415,17 +414,7 @@ export default function BountyDetailPage() {
                       </button>
                     )}
                   </div>
-                  <div>
-                    <Label optional hint="We'll email you if you win">
-                      Notification email
-                    </Label>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={alertEmail}
-                      onChange={(e) => setAlertEmail(e.target.value)}
-                    />
-                  </div>
+
                   <Button
                     fullWidth
                     onClick={() => registerMutation.mutate()}

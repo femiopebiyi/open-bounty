@@ -123,17 +123,17 @@ export default function HomePage() {
 
       {/* Feed */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid gap-8 lg:grid-cols-[180px_1fr]">
+        <div className="grid gap-8 lg:grid-cols-[180px_1fr] w-full">
           {/* Sidebar */}
           <aside className="hidden lg:block sticky top-20 self-start">
             <LanguageFilter selected={languages} onChange={setLanguages} />
           </aside>
 
           {/* Main */}
-          <div>
+          <div className="min-w-0 w-full overflow-hidden">
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-              <div className="flex-1 max-w-md">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5 w-full">
+              <div className="w-full sm:flex-1 sm:max-w-md min-w-0">
                 <Input
                   placeholder="Search bounties, repos, users…"
                   leftIcon={<Search className="w-3.5 h-3.5" />}
@@ -152,7 +152,7 @@ export default function HomePage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-none">
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none w-full sm:w-auto">
                 {STATUS_FILTERS.map((f) => (
                   <button
                     key={f.value}

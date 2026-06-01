@@ -42,6 +42,7 @@
     outline-offset: 2px;
     border-radius: 4px;
   }
+
   button:focus-visible,
   a:focus-visible {
     outline-offset: 2px;
@@ -59,6 +60,7 @@
 }
 
 @layer components {
+
   /* Subtle gradient grid background for hero sections */
   .bg-grid {
     background-image:
@@ -67,11 +69,9 @@
     background-size: 32px 32px;
     background-position: -1px -1px;
     mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
-    -webkit-mask-image: radial-gradient(
-      ellipse at top,
-      black 30%,
-      transparent 75%
-    );
+    -webkit-mask-image: radial-gradient(ellipse at top,
+        black 30%,
+        transparent 75%);
   }
 
   /* Skeleton shimmer */
@@ -80,16 +80,15 @@
     overflow: hidden;
     background: theme("colors.ink.100");
   }
+
   .skeleton::after {
     content: "";
     position: absolute;
     inset: 0;
-    background-image: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.6),
-      transparent
-    );
+    background-image: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.6),
+        transparent);
     transform: translateX(-100%);
     animation: shimmer 1.6s infinite;
   }
@@ -99,6 +98,7 @@
   .text-balance {
     text-wrap: balance;
   }
+
   .text-pretty {
     text-wrap: pretty;
   }
@@ -115,9 +115,11 @@
   border-radius: 8px !important;
   transition: opacity 0.15s ease !important;
 }
+
 .wallet-adapter-button-trigger:hover {
   background: theme("colors.ink.800") !important;
 }
+
 .wallet-adapter-modal-wrapper {
   background: white !important;
   border-radius: 14px !important;
@@ -126,17 +128,20 @@
     0 0 0 0.5px theme("colors.ink.200") !important;
   font-family: var(--font-geist-sans) !important;
 }
+
 .wallet-adapter-modal-title {
   font-family: var(--font-geist-sans) !important;
   font-weight: 600 !important;
   letter-spacing: -0.01em !important;
 }
+
 .wallet-adapter-modal-list .wallet-adapter-button {
   background: theme("colors.ink.50") !important;
   border-radius: 8px !important;
   font-family: var(--font-geist-sans) !important;
   transition: background 0.15s ease !important;
 }
+
 .wallet-adapter-modal-list .wallet-adapter-button:hover {
   background: theme("colors.ink.100") !important;
 }
@@ -146,13 +151,25 @@
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: theme("colors.ink.200");
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: theme("colors.ink.300");
+}
+
+@supports (-webkit-touch-callout: none) {
+
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }

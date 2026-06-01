@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT usd_amount_at_the_time, token_mint FROM bounties WHERE bounty_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "usd_amount_at_the_time",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_mint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "94a21106353c25845efc3281cb140b1216b3f1287b1469b00efaa2534ce127d6"
+}
